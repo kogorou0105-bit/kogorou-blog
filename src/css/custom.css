@@ -1,0 +1,138 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+html:has(.home-main-wrapper),
+body:has(.home-main-wrapper) {
+  height: 100%;
+  overflow: hidden;
+}
+
+#__docusaurus:has(.home-main-wrapper) {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#__docusaurus:has(.home-main-wrapper) .navbar,
+#__docusaurus:has(.home-main-wrapper) .footer {
+  flex: 0 0 auto;
+}
+
+.home-main-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#__docusaurus:has(.home-main-wrapper) .footer {
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+.navbar__link {
+  position: relative;
+  transition:
+    color 160ms ease;
+}
+
+.navbar__link:hover {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.navbar__link::after {
+  background-color: var(--ifm-color-primary);
+  bottom: 0.2rem;
+  content: '';
+  height: 2px;
+  left: 0.75rem;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms ease;
+  width: calc(100% - 1.5rem);
+}
+
+.navbar__link:hover::after,
+.navbar__link--active::after {
+  transform: scaleX(1);
+}
+
+.navbar__link--active {
+  font-weight: 700;
+}
+
+.container.margin-vert--lg > .row > aside.col--3 nav a {
+  display: inline-block;
+  position: relative;
+  transition: color 160ms ease;
+}
+
+.container.margin-vert--lg > .row > aside.col--3 nav a:hover {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.container.margin-vert--lg > .row > aside.col--3 nav a::after {
+  background-color: var(--ifm-color-primary);
+  bottom: -0.12rem;
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms ease;
+  width: 100%;
+}
+
+.container.margin-vert--lg > .row > aside.col--3 nav a:hover::after,
+.container.margin-vert--lg > .row > aside.col--3 nav a[aria-current='page']::after {
+  transform: scaleX(1);
+}
+
+.container.margin-vert--lg > .row > aside.col--3 nav a[aria-current='page'] {
+  font-weight: 700;
+}
+
+.blog-sidebar-month-group {
+  margin-top: 0.55rem;
+}
+
+.blog-sidebar-month-heading {
+  color: var(--ifm-color-emphasis-600);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0.45rem 0 0.2rem;
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}

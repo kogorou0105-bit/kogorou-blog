@@ -1,0 +1,149 @@
+---
+slug: typescript-domain-modeling
+title: 用 TypeScript 给前端状态建模
+description: 使用判别联合、泛型和类型收窄，让复杂页面状态更可维护。
+tags: [TypeScript, State, Frontend]
+---
+
+复杂前端页面最常见的问题之一，是状态变量越来越多，但它们之间的关系没有被表达出来。
+
+TypeScript 不只是用来给变量标注 `string` 或 `number`，它也可以帮助我们给页面状态建模。
+
+{/* truncate */}
+
+## 反例：用多个布尔值描述状态
+
+很多页面一开始会这样写：
+
+```ts
+type PageState = {
+  loading: boolean;
+  error: string | null;
+  data: User[] | null;
+};
+```
+
+看起来没问题，但它允许很多不合理状态：
+
+```ts
+const state: PageState = {
+  loading: true,
+  error: '请求失败',
+  data: [{id: '1', name: 'Kogorou'}],
+};
+```
+
+这个状态到底是什么意思？正在加载、又失败了、但还有数据？
+
+问题不在 TypeScript，而在我们没有把业务状态之间的互斥关系表达出来。
+
+## 判别联合：让状态互斥
+
+可以改成这样：
+
+```ts
+type PageState =
+  | {status: 'idle'}
+  | {status: 'loading'}
+  | {status: 'success'; data: User[]}
+  | {status: 'error'; message: string};
+```
+
+现在每种状态都有明确结构。
+
+渲染时也会更清楚：
+
+```tsx
+function UserList({state}: {state: PageState}) {
+  if (state.status === 'loading') {
+    return <Loading />;
+  }
+
+  if (state.status === 'error') {
+    return <ErrorMessage message={state.message} />;
+  }
+
+  if (state.status === 'success') {
+    return <List users={state.data} />;
+  }
+
+  return <EmptyState />;
+}
+```
+
+当 `status` 是 `success` 时，TypeScript 自动知道 `state.data` 存在。
+
+## 泛型：抽出可复用的请求状态
+
+如果很多页面都有类似的请求状态，可以抽成泛型：
+
+```ts
+type RemoteData<T> =
+  | {status: 'idle'}
+  | {status: 'loading'}
+  | {status: 'success'; data: T}
+  | {status: 'error'; message: string};
+
+type UserListState = RemoteData<User[]>;
+type ArticleState = RemoteData<Article>;
+```
+
+这样既能复用结构，又不会丢失具体数据类型。
+
+## 用 never 检查遗漏分支
+
+当状态变复杂后，最怕新增一种状态却忘记更新 UI。
+
+可以用 `never` 做穷尽检查：
+
+```ts
+function assertNever(value: never): never {
+  throw new Error(`Unexpected value: ${value}`);
+}
+
+function getStateLabel(state: PageState) {
+  switch (state.status) {
+    case 'idle':
+      return '未开始';
+    case 'loading':
+      return '加载中';
+    case 'success':
+      return '已完成';
+    case 'error':
+      return '失败';
+    default:
+      return assertNever(state);
+  }
+}
+```
+
+如果之后给 `PageState` 新增 `refreshing`，但忘记更新这个 `switch`，TypeScript 就会提示。
+
+## 表单状态也可以建模
+
+表单经常有编辑、提交、成功、失败等状态。
+
+不要只写一堆布尔值：
+
+```ts
+type FormState<T> =
+  | {status: 'editing'; values: T}
+  | {status: 'submitting'; values: T}
+  | {status: 'submitted'; resultId: string}
+  | {status: 'failed'; values: T; message: string};
+```
+
+这样可以明确：失败时还保留用户输入，成功后只需要结果 ID。
+
+## 小结
+
+TypeScript 的价值不只是“防止写错字段”。
+
+更重要的是，它可以把隐含在脑子里的业务规则写进类型系统：
+
+- 哪些状态互斥
+- 哪些字段只在某个状态存在
+- 新增状态时哪些地方必须同步修改
+- 通用结构如何复用但不丢类型
+
+当页面变复杂时，好的类型建模能让错误更早暴露，也能让代码更容易读。

@@ -1,0 +1,8 @@
+{
+  "label": "问题排查",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "记录遇到的问题、原因和解决办法。"
+  }
+}

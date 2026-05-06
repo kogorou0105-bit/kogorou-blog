@@ -1,0 +1,102 @@
+---
+slug: react-rendering-pipeline
+title: React 渲染链路：从状态更新到屏幕提交
+description: 梳理 React 中状态更新、调度、协调和提交阶段的关系。
+tags: [React, Rendering, Frontend]
+---
+
+React 的渲染并不是“状态变了就立刻改 DOM”这么简单。
+
+更准确地说，React 会把一次更新拆成几个阶段：触发更新、调度任务、计算新的 UI 树、提交到宿主环境。理解这条链路之后，很多性能问题会变得更容易定位。
+
+{/* truncate */}
+
+## 一个状态更新发生了什么
+
+当组件里调用 `setState` 或 `setCount` 时，React 不会马上同步修改页面。
+
+它会先创建一次更新，并把这次更新放进对应 Fiber 节点的更新队列里。之后 React 调度器会决定这次更新什么时候执行，以及它的优先级应该是什么。
+
+可以粗略理解成这样：
+
+```txt
+事件触发
+  -> 创建更新
+  -> 标记优先级
+  -> 开始 render 阶段
+  -> 生成 workInProgress Fiber 树
+  -> commit 阶段写入 DOM
+```
+
+这里最容易误解的是：`render` 阶段不等于浏览器绘制。React 的 render 阶段主要是在内存里计算“新的 UI 应该长什么样”。真正改 DOM 的动作发生在 commit 阶段。
+
+## render 阶段为什么可以被打断
+
+React 的 Fiber 架构让一次渲染工作可以被拆成很多小单元。
+
+这意味着 React 可以在某些情况下暂停当前工作，把更高优先级的任务先处理掉。例如用户正在输入时，输入反馈通常应该优先于一个很重的列表更新。
+
+这也是为什么不要在组件渲染过程中做副作用：
+
+```tsx
+function Profile() {
+  localStorage.setItem('visited', 'yes');
+
+  return <div>Profile</div>;
+}
+```
+
+这段代码的问题是，组件函数可能被 React 调用多次，但其中某次 render 结果不一定会被提交。如果把副作用放在 render 阶段，就可能出现“执行了副作用，但页面没有采用这次结果”的情况。
+
+更合适的写法是：
+
+```tsx
+import {useEffect} from 'react';
+
+function Profile() {
+  useEffect(() => {
+    localStorage.setItem('visited', 'yes');
+  }, []);
+
+  return <div>Profile</div>;
+}
+```
+
+## commit 阶段为什么必须快
+
+commit 阶段会真正修改 DOM、绑定 ref、执行 layout effect。
+
+这个阶段不能像 render 阶段那样随意中断，因为 DOM 一旦进入部分提交状态，页面就可能出现不一致。
+
+所以性能优化时要特别注意：不要在 `useLayoutEffect` 里放太重的同步逻辑。
+
+```tsx
+useLayoutEffect(() => {
+  const rect = node.getBoundingClientRect();
+  expensiveSyncWork(rect);
+}, []);
+```
+
+这类代码会阻塞浏览器绘制。除非你真的需要在绘制前测量布局，否则优先使用 `useEffect`。
+
+## 一个实用判断
+
+遇到 React 页面卡顿时，可以先问三个问题：
+
+- 是不是某个状态更新导致了太多组件重新计算？
+- 是不是 render 阶段有很重的纯计算？
+- 是不是 commit 阶段或 layout effect 阻塞了绘制？
+
+不同阶段的问题，对应的优化手段不同。
+
+## 小结
+
+React 渲染链路的核心不是背 API，而是分清楚：
+
+- 状态更新只是起点
+- render 阶段负责计算 UI
+- commit 阶段负责修改 DOM
+- 副作用不应该写在 render 阶段
+- commit 阶段的同步工作越少越好
+
+理解这些之后，再看并发渲染、过渡更新、Suspense，就不会只停留在 API 层面。
