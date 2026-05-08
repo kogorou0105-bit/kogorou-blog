@@ -5,23 +5,150 @@ title: Docusaurus 基础
 
 # Docusaurus 基础
 
-这篇可以记录你对 Docusaurus 的理解。
+Docusaurus 可以理解成一套“内容目录 + 站点配置 + React 页面”的静态站点框架。
 
-## 我目前知道的
+这个站点现在主要用它来承载两类内容：一类是面向阅读的博客，另一类是偏沉淀和持续更新的笔记。
+
+## 这个项目里的几个关键目录
 
 - `docusaurus.config.ts` 控制站点配置、导航栏和页脚。
-- `src/pages` 里的文件会变成独立页面，比如首页和关于页。
-- `docs` 里的文件会出现在笔记区。
-- `blog` 里的文件会出现在博客区。
+- `sidebars.ts` 控制笔记区侧边栏，现在使用文件系统自动生成。
+- `docs/` 里的文件会出现在笔记区，比如技术笔记、项目记录和问题排查。
+- `blog/` 里的文件会出现在博客区，Docusaurus 会自动生成博客列表、标签页和文章页。
+- `src/pages/` 里的文件会变成独立页面，比如首页和关于页。
 - `src/css/custom.css` 可以调整全站主题颜色。
+- `static/` 放静态资源，比如图片、favicon 和 logo。
 
-## 之后可以补充
+## 博客和笔记的区别
 
-- 如何新增一篇文档
-- 如何新增一篇博客
-- 如何修改主题颜色
-- 如何部署到 GitHub Pages
+博客更适合写成完整文章。它应该有一个对读者明确的主题，比如一次学习路线、一次经验总结、一个技术观点。
+
+笔记更适合记录还在生长的内容。它可以是问题拆解、项目记录、排障过程，也可以是一组暂时还没有最终结论的思考。
+
+当前可以这样判断：
+
+- 想给别人一条完整阅读路线，放到 `blog/`。
+- 想沉淀自己的工作过程和技术判断，放到 `docs/`。
+- 内容还会继续补充，优先放到笔记。
+- 内容已经有清楚的开头、推进和结尾，可以整理成博客。
+
+## 新增一篇博客
+
+博客文件放在 `blog/` 下，文件名通常带日期：
+
+```text
+blog/YYYY-MM-DD-short-slug.mdx
+```
+
+博客需要 front matter：
+
+```mdx
+---
+slug: short-slug
+title: 文章标题
+description: 一句话描述这篇文章
+tags: [Tag1, Tag2]
+---
+```
+
+正文里可以用 `truncate` 控制博客列表页的摘要截断位置：
+
+```mdx
+{/* truncate */}
+```
+
+例如当前这篇博客：
+
+```text
+blog/2026-05-08-trellis-harness-learning-guide.mdx
+```
+
+它会出现在 `/blog` 列表里，访问路径由 `slug` 决定。
+
+## 新增一篇笔记
+
+笔记文件放在 `docs/` 下。当前常用分类是：
+
+- `docs/tech-notes/`：技术笔记、工具用法、方法论。
+- `docs/project-notes/`：项目过程、站点改造、功能演进。
+- `docs/troubleshooting/`：问题定位和排障记录。
+
+笔记需要 front matter：
+
+```mdx
+---
+sidebar_position: 2
+title: 笔记标题
+---
+```
+
+`sidebar_position` 会影响同一目录下的排序。分类本身的名称和描述在 `_category_.json` 里配置。
+
+例如：
+
+```text
+docs/tech-notes/harness-workflow-automation.mdx
+docs/tech-notes/_category_.json
+```
+
+因为 `sidebars.ts` 使用自动生成侧边栏，所以新增文档后通常不需要手动改侧边栏。
+
+## 导航入口在哪里改
+
+顶部导航和页脚主要在 `docusaurus.config.ts` 里改。
+
+顶部导航现在包括：
+
+- 首页：`/`
+- 笔记：自动指向 docs 侧边栏
+- 博客：`/blog`
+- 关于：`/about`
+- GitHub：外部链接
+
+如果要修改首页内容，主要看：
+
+```text
+src/pages/index.tsx
+```
+
+如果要修改关于页，主要看：
+
+```text
+src/pages/about.mdx
+```
+
+## 常用检查命令
+
+本地开发预览：
+
+```bash
+npm run start
+```
+
+生产构建检查：
+
+```bash
+npm run build
+```
+
+TypeScript 检查：
+
+```bash
+npm run typecheck
+```
+
+每次新增或修改 MDX 后，至少跑一次 `npm run build`。这样可以提前发现 front matter、链接、MDX 语法和 Docusaurus 配置问题。
+
+## 写内容时要注意
+
+- MDX 里可以写普通 Markdown，也可以混入 JSX。
+- 如果正文里出现 `{` 或 `<` 这类字符，Docusaurus 可能会按 MDX 语法解析。
+- 代码片段尽量放进 fenced code block。
+- 站内链接建议使用 Docusaurus 生成后的路径，比如 `/docs/intro`、`/blog`。
+- 博客 tags 会生成标签页，命名要尽量稳定。
 
 ## 小结
 
-先不要急着一次改完，理解一个目录就改一个目录。
+这个项目里最重要的规则其实很简单：`docs/` 负责笔记，`blog/` 负责博客，站点入口和导航放在 `docusaurus.config.ts`，首页这种更自由的页面放在 `src/pages/`。
+
+先按目录放对内容，再用 `npm run build` 验证，就能避免大多数 Docusaurus 使用上的问题。
