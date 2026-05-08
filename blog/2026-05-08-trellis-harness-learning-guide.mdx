@@ -1,0 +1,544 @@
+---
+slug: trellis-harness-learning-guide
+title: 我是怎么读懂 Trellis Harness 的
+description: 一条从工作流到适配器的阅读路线，理解 Trellis harness 如何串联需求、实现、检查和沉淀。
+tags: [Trellis, Workflow, AI Engineering]
+---
+
+如果你第一次打开这个仓库里的 `.trellis/` 目录，很容易被里面的 workflow、tasks、spec、workspace、scripts 以及 `.opencode/` 适配层弄晕。它们看起来像一组零散的脚本和文档，但真正理解以后你会发现：Trellis harness 是一套把“需求澄清、实现、检查、沉淀、收尾”串起来的轻量工作流系统。
+
+这篇文章面向想研究本项目 Trellis harness 的开发者。目标不是列一份冷冰冰的文件清单，而是给你一条可执行的学习路线：先读什么、再看什么、哪些命令值得亲手跑一遍，以及如何建立一套稳定的心智模型。
+
+{/* truncate */}
+
+---
+
+## 先建立心智模型：Trellis 到底在协调什么？
+
+理解 Trellis harness 的关键，是先把它看成一条上下文驱动的工作流链路：
+
+```text
+user input
+  -> SessionStart / workflow-state injection
+  -> AI reads current status
+  -> no_task / planning / in_progress / completed
+  -> .trellis/workflow.md determines next step
+  -> task.py manages task lifecycle
+  -> JSONL controls sub-agent preloaded context
+  -> implement / check / update-spec / finish-work completes the loop
+```
+
+换句话说，Trellis 并不是只靠 AI “记住流程”。它把流程写进文件，把状态落到任务目录，把上下文通过 hook 或 adapter 注入给 AI，再用脚本维护生命周期。
+
+你可以把它想象成几层：
+
+1. **用户输入**触发一次会话轮次。
+2. **SessionStart / workflow-state 注入**告诉 AI 当前任务状态和下一步该做什么。
+3. **`.trellis/workflow.md`** 是总流程说明书。
+4. **`.trellis/tasks/`** 保存每个任务的 PRD、状态、上下文 JSONL。
+5. **`.trellis/scripts/task.py`** 负责创建、激活、校验、查询任务。
+6. **`.trellis/scripts/get_context.py`** 负责按 phase、package、spec 等维度取上下文。
+7. **`implement.jsonl` / `check.jsonl`** 决定 implement/check sub-agent 预加载哪些 spec 和 research。
+8. **`.trellis/spec/`** 保存项目约定，避免 AI 凭空发挥。
+9. **`.trellis/workspace/`** 保存开发者工作记忆和 journal。
+10. **`.opencode/`** 把这一套接到 OpenCode 平台。
+11. **`trellis-meta`** 用来研究和修改 Trellis harness 自身。
+
+先记住这条链路，后面看文件时就不会迷路。
+
+---
+
+## 推荐学习顺序
+
+### 1. 从 `.trellis/workflow.md` 开始：先看“流程宪法”
+
+第一站一定是：
+
+```text
+.trellis/workflow.md
+```
+
+这个文件定义了 Trellis 的三大阶段：
+
+- **Phase 1: Plan**：创建任务、澄清需求、研究、整理上下文、启动任务。
+- **Phase 2: Execute**：实现和质量检查。
+- **Phase 3: Finish**：最终验证、更新 spec、提交、归档收尾。
+
+阅读时重点关注这些内容：
+
+- `no_task`、`planning`、`in_progress`、`completed` 这些 status 分别意味着什么。
+- 每个 phase 里哪些步骤是 `[required]`，哪些是 `[once]`。
+- workflow-state block 如何把“当前状态下 AI 应该做什么”写成可注入提示词。
+- 为什么在 `in_progress` 状态下默认要走 `trellis-implement`、`trellis-check`、`trellis-update-spec`。
+
+如果只读一个文件来理解 Trellis 的行为，那就是它。
+
+---
+
+### 2. 看 `.trellis/tasks/`：理解任务如何落地
+
+第二站是任务目录：
+
+```text
+.trellis/tasks/
+```
+
+每个任务通常是一个独立目录，里面会出现这些文件：
+
+```text
+prd.md
+info.md
+implement.jsonl
+check.jsonl
+task.json
+research/
+```
+
+它们的分工大致如下：
+
+- `prd.md`：需求文档，告诉 agent 要做什么。
+- `info.md`：技术设计，可选；复杂任务会更有用。
+- `implement.jsonl`：implement sub-agent 需要预加载的 spec / research。
+- `check.jsonl`：check sub-agent 需要预加载的 spec / research。
+- `task.json`：任务元信息和状态。
+- `research/`：研究产物，尤其适合第三方 API、架构方案、技术比较。
+
+这里最重要的认识是：**Trellis 不把需求只留在聊天里，而是要求写进任务文件。** 聊天会被压缩、遗忘或跨会话丢失，但任务目录会保留下来。
+
+---
+
+### 3. 研究 `task.py`：任务生命周期的控制台
+
+接下来可以看脚本：
+
+```text
+.trellis/scripts/task.py
+```
+
+它是任务生命周期的主要入口。你不需要一开始读完全部实现，可以先从命令行为反推它的职责。
+
+创建一个探索任务：
+
+```bash
+python3 ./.trellis/scripts/task.py create "Explore Trellis harness" --slug explore-trellis-harness
+```
+
+查看当前任务和来源：
+
+```bash
+python3 ./.trellis/scripts/task.py current --source
+```
+
+给 implement agent 增加上下文：
+
+```bash
+python3 ./.trellis/scripts/task.py add-context <task> implement ".trellis/spec/backend/index.md" "Backend conventions"
+```
+
+校验任务目录：
+
+```bash
+python3 ./.trellis/scripts/task.py validate <task>
+```
+
+启动任务，进入 `in_progress`：
+
+```bash
+python3 ./.trellis/scripts/task.py start <task>
+```
+
+这些命令对应的是 Trellis 的基本生命周期：
+
+```text
+create -> planning -> add context / validate -> start -> in_progress -> finish/archive
+```
+
+学习时建议你边看 `.trellis/workflow.md`，边对照 `task.py` 里的 command handler。这样你会更清楚：workflow 里的规则不是抽象说明，而是由脚本和 hook 共同执行的。
+
+---
+
+### 4. 理解 active task / session state：AI 为什么知道“现在该做什么”
+
+Trellis 的一个关键能力是：新开会话或继续会话时，AI 会收到当前任务状态、开发者身份、git 状态、active tasks、spec 索引等信息。
+
+这类信息通常来自 SessionStart 注入和运行时状态解析。你可以通过命令观察当前任务来源：
+
+```bash
+python3 ./.trellis/scripts/task.py current --source
+```
+
+这里值得关注两个问题：
+
+1. 当前 session 指向哪个 active task？
+2. 如果没有 active task，workflow-state 为什么会变成 `no_task`？
+
+当状态是 `no_task` 时，AI 应该直接回答简单问题；一旦用户请求实现、重构、构建或修改代码，就应该创建任务并进入 Plan。状态是 `planning` 时，AI 应该写 PRD、整理 JSONL、再 `start`。状态是 `in_progress` 时，AI 应该走 implement/check/update-spec/commit/finish 的闭环。
+
+这就是 workflow-state 的意义：**它把“下一步该做什么”从主观判断变成状态机驱动。**
+
+---
+
+### 5. 看 `get_context.py`：上下文是如何按需取出的
+
+然后阅读：
+
+```text
+.trellis/scripts/get_context.py
+```
+
+这个脚本负责把 workflow、phase、package、spec 等信息按不同模式取出来。
+
+常用命令包括：
+
+```bash
+python3 ./.trellis/scripts/get_context.py
+```
+
+列出 package 和 spec layer：
+
+```bash
+python3 ./.trellis/scripts/get_context.py --mode packages
+```
+
+查看某个 phase step 的详细说明：
+
+```bash
+python3 ./.trellis/scripts/get_context.py --mode phase --step 1.3
+```
+
+如果说 `task.py` 管的是“任务状态”，那么 `get_context.py` 管的就是“该给 AI 哪些说明”。这也是 Trellis 能跨会话保持一致行为的重要原因。
+
+---
+
+### 6. 研究 workflow-state injection：提示词不是凭空出现的
+
+当你看到会话开头出现类似当前状态、任务路径、workflow-state 的内容时，不要把它当成普通日志。它是 Trellis harness 的核心机制之一。
+
+重点阅读路径：
+
+```text
+.trellis/workflow.md
+.trellis/scripts/get_context.py
+.opencode/plugins/
+.opencode/commands/trellis/
+```
+
+其中：
+
+- `.trellis/workflow.md` 写了每个 `[workflow-state:...]` block 的正文。
+- `.trellis/scripts/get_context.py` 可以按 phase、package 等模式取出 workflow 和 spec 上下文。
+- `.opencode/plugins/` 与 `.opencode/commands/trellis/` 是 OpenCode 侧把这些上下文接入会话、命令和 agent 行为的适配入口。
+- 如果你的 fork 里新增了专门的 workflow-state 注入脚本或契约文档，也应把它和 `.trellis/workflow.md` 一起阅读，确认 status writer、hook 可达性和测试不变量一致。
+
+建议你重点看 `no_task`、`planning`、`in_progress` 的差异。因为绝大多数日常开发都会在这三个状态之间流转。
+
+---
+
+### 7. 理解 sub-agent context injection：为什么有 `implement.jsonl` 和 `check.jsonl`
+
+在 agent-capable 平台上，Trellis 通常不希望主会话直接写代码，而是派发：
+
+- `trellis-implement`
+- `trellis-check`
+- `trellis-update-spec`
+
+这时，sub-agent 需要知道哪些 spec、research、任务文档必须提前阅读。答案就在任务目录下的 JSONL 文件：
+
+```text
+implement.jsonl
+check.jsonl
+```
+
+每行是一个 JSON object，例如：
+
+```json
+{"file":".trellis/spec/backend/index.md","reason":"Backend conventions"}
+```
+
+也可以用命令追加：
+
+```bash
+python3 ./.trellis/scripts/task.py add-context <task> implement ".trellis/spec/backend/index.md" "Backend conventions"
+```
+
+这个设计解决了一个很实际的问题：主会话知道的上下文，sub-agent 未必知道。JSONL 就像交接清单，保证 implement/check agent 启动时能获得正确资料。
+
+---
+
+### 8. 看 `.trellis/spec/`：项目约定的长期记忆
+
+接下来阅读：
+
+```text
+.trellis/spec/
+```
+
+它保存项目级开发规范。典型结构可能包括：
+
+```text
+.trellis/spec/backend/index.md
+.trellis/spec/frontend/index.md
+.trellis/spec/guides/
+```
+
+学习时先看 index，再按 index 的 Pre-Development Checklist 继续读具体指南。
+
+你要特别关注这些问题：
+
+- 哪些目录结构是约定好的？
+- 错误处理、日志、质量规则有什么禁用模式？
+- 是否有跨层思考指南，例如数据从 backend 到 frontend 如何流动？
+- 是否有代码复用指南，提醒改常量或新增 helper 前先搜索？
+
+Trellis 的重要习惯是：**一次任务中学到的可复用经验，应通过 `trellis-update-spec` 沉淀回 `.trellis/spec/`。** 这样下一次 agent 才能继承经验，而不是每轮重新踩坑。
+
+---
+
+### 9. 看 `.trellis/workspace/`：开发者自己的工作记忆
+
+然后看：
+
+```text
+.trellis/workspace/
+```
+
+这里通常按开发者保存 journal、session trace 或其他工作记忆。例如：
+
+```text
+.trellis/workspace/<developer>/journal-1.md
+```
+
+如果 `.trellis/tasks/` 是“任务记忆”，那么 `.trellis/workspace/` 更像“开发者记忆”。它能记录会话、收尾、归档等过程中的信息。
+
+这部分不一定是你理解执行链路的第一优先级，但当你研究 `/finish-work`、归档、journal 更新时，它会变得很重要。
+
+---
+
+### 10. 研究 `.opencode/`：OpenCode 平台适配层
+
+如果你在 OpenCode 环境里使用 Trellis，就需要看：
+
+```text
+.opencode/
+```
+
+推荐阅读路径：
+
+```text
+.opencode/agents/
+.opencode/commands/
+.opencode/skills/
+.opencode/skills/trellis-meta/
+```
+
+不同项目结构可能略有差异，但学习目标是一致的：搞清楚 Trellis workflow 如何被接入平台能力。
+
+重点关注：
+
+- `trellis-implement` agent 如何被定义。
+- `trellis-check` agent 如何被定义。
+- `/trellis:finish-work` 这类命令如何映射到脚本。
+- skills 如何把 workflow、spec、task context 注入到 agent 行为中。
+
+你可以把 `.opencode/` 理解成“平台适配器”：Trellis 的核心状态和规则在 `.trellis/`，而 OpenCode 需要通过 adapter 把这些规则接入具体的 agent、command、hook、skill。
+
+---
+
+### 11. 最后用 `trellis-meta` 研究和定制 Trellis 本身
+
+当你不只是使用 Trellis，而是想修改 Trellis harness 本身时，再进入 `trellis-meta`。
+
+相关入口通常在：
+
+```text
+.opencode/skills/trellis-meta/
+```
+
+`trellis-meta` 的定位是帮助你理解和定制本地 Trellis 架构，包括：
+
+- `.trellis/` 工作流文件。
+- platform hooks。
+- settings。
+- agents。
+- skills。
+- commands。
+- prompts。
+- workflow 自定义。
+
+一个实用建议是：在你还没理解 `.trellis/workflow.md`、`task.py`、`get_context.py`、workflow-state injection 之前，不要急着改 `trellis-meta` 相关内容。否则很容易只改了提示词，却没同步状态机契约或脚本行为。
+
+---
+
+## 一条实用的文件阅读路线
+
+如果你想系统阅读，可以按下面这条路线走。
+
+### 总体工作流
+
+```text
+.trellis/workflow.md
+.trellis/scripts/task.py
+.trellis/scripts/get_context.py
+.opencode/plugins/
+.opencode/commands/trellis/
+```
+
+这条线帮你理解：状态如何流转、上下文如何生成、AI 为什么收到那些指令。
+
+### 任务实现细节
+
+```text
+.trellis/tasks/<task>/prd.md
+.trellis/tasks/<task>/info.md
+.trellis/tasks/<task>/implement.jsonl
+.trellis/tasks/<task>/check.jsonl
+.trellis/tasks/<task>/task.json
+```
+
+这条线帮你理解：一个具体任务如何从需求变成实现上下文。
+
+### OpenCode 适配
+
+```text
+.opencode/agents/
+.opencode/commands/
+.opencode/skills/
+```
+
+这条线帮你理解：Trellis 如何接入 OpenCode 的 agent、command、skill 体系。
+
+### 项目规范和长期记忆
+
+```text
+.trellis/spec/
+.trellis/workspace/
+```
+
+这条线帮你理解：项目约定和开发者记忆如何沉淀下来。
+
+### 自定义 Trellis
+
+```text
+.opencode/skills/trellis-meta/
+.trellis/workflow.md
+.trellis/scripts/task.py
+.trellis/scripts/get_context.py
+```
+
+这条线帮你理解：如果要改 harness，应遵循哪些契约。
+
+---
+
+## 一条 hands-on 探索路线
+
+只读文件不如亲手跑一遍。你可以在一个安全分支上尝试下面的探索路径。
+
+第一步，创建一个实验任务：
+
+```bash
+python3 ./.trellis/scripts/task.py create "Explore Trellis harness" --slug explore-trellis-harness
+```
+
+第二步，查看当前任务来源：
+
+```bash
+python3 ./.trellis/scripts/task.py current --source
+```
+
+第三步，查看 package/spec 信息：
+
+```bash
+python3 ./.trellis/scripts/get_context.py --mode packages
+```
+
+第四步，研究 Phase 1.3 为什么要求整理 JSONL：
+
+```bash
+python3 ./.trellis/scripts/get_context.py --mode phase --step 1.3
+```
+
+第五步，给 implement 上下文追加一个 spec：
+
+```bash
+python3 ./.trellis/scripts/task.py add-context <task> implement ".trellis/spec/backend/index.md" "Backend conventions"
+```
+
+第六步，校验任务：
+
+```bash
+python3 ./.trellis/scripts/task.py validate <task>
+```
+
+第七步，启动任务：
+
+```bash
+python3 ./.trellis/scripts/task.py start <task>
+```
+
+第八步，再查看一次当前上下文：
+
+```bash
+python3 ./.trellis/scripts/get_context.py
+```
+
+跑完这条路径，你会对 `planning` 到 `in_progress` 的切换、JSONL 的作用、spec 注入的意义有直观感受。
+
+---
+
+## 常见误区
+
+### 误区一：把 Trellis 当成普通文档目录
+
+`.trellis/` 不是只有文档。它包含 workflow、状态、脚本、spec、workspace memory。文档和脚本共同构成 harness。
+
+### 误区二：认为 AI 会自动记住所有上下文
+
+不会。Trellis 之所以要求 `prd.md`、`implement.jsonl`、`check.jsonl`，就是因为不同 session 和 sub-agent 之间不能依赖隐式记忆。
+
+### 误区三：只改 workflow 文本，不考虑状态契约
+
+如果你修改了 `.trellis/workflow.md` 中的 required step 或 workflow-state block，需要确认脚本、hook 和 spec 契约是否仍一致。尤其要参考：
+
+```text
+.trellis/scripts/task.py
+.trellis/scripts/get_context.py
+.opencode/plugins/
+.opencode/commands/trellis/
+```
+
+### 误区四：跳过 `trellis-update-spec`
+
+如果一次任务产生了可复用经验，却没有沉淀到 `.trellis/spec/`，下一次 agent 很可能还会重复犯错。`trellis-update-spec` 是 Trellis 闭环的一部分，不只是文档洁癖。
+
+---
+
+## 总结：用状态机理解 Trellis，用文件系统验证 Trellis
+
+学习 Trellis harness 最有效的方法，是同时抓住两件事：
+
+第一，用状态机理解它：
+
+```text
+no_task -> planning -> in_progress -> completed
+```
+
+第二，用文件系统验证它：
+
+```text
+.trellis/workflow.md
+.trellis/tasks/
+.trellis/scripts/
+.trellis/spec/
+.trellis/workspace/
+.opencode/
+```
+
+当你能解释这条链路时，就说明你已经掌握了 Trellis 的核心：
+
+```text
+user input -> injected context -> workflow-state -> task lifecycle -> agents -> check/update/finish
+```
+
+之后再去看 `trellis-meta`，你就不会只是“改几个 prompt”，而是在理解整个 harness 契约的基础上做定制。
+
+这也是 Trellis 最值得学习的地方：它不是让 AI 更自由地发挥，而是用可读、可查、可验证的文件和脚本，把 AI 协作变成一条稳定的工程流程。
