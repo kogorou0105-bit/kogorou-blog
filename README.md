@@ -1,75 +1,25 @@
 # Kogorou Blog
 
-Kogorou Blog 是一个个人技术博客 / 笔记站点。
+一个用来收纳技术文章、工作笔记和脑内碎碎念的小站。
 
-这个项目是在 [Docusaurus](https://docusaurus.io/) 的基础上改造的，保留了 Docusaurus 的文档、博客、标签、主题和构建能力，并在此基础上调整了首页、导航、页脚、博客侧边栏和内容结构。
+这里不会假装自己是大型知识库，更像一间还在慢慢布置的杂货铺：有些内容是完整博客，有些只是问题拆解，有些是项目改造记录。先把想法摆上货架，之后再慢慢擦灰、分类、升级。
 
-## 主要内容
+## 这里放什么
 
-- `博客`：较完整的前端技术文章
-- `笔记`：技术学习、项目记录和问题排查
-- `关于`：站点说明
-- `标签`：按主题浏览博客内容
+- **博客**：更完整的技术文章、学习路线和经验总结。
+- **笔记**：工作中冒出来的问题、流程思考和项目记录。
+- **排障记录**：那些“下次别再踩了”的坑。
+- **站点改造**：这个博客自己是怎么一点点长出来的。
 
-## 技术栈
+## 为什么有这个站点
 
-- Docusaurus 3
-- React 19
+写代码时很多收获都不是一个漂亮结论，而是一段绕路、一串追问、一次突然想明白的瞬间。
+
+这个站点就是用来保存这些东西的。能写成文章的，就放进博客；还在发酵的，就先记成笔记。等哪天它们变成熟，再从货架角落挪到橱窗里。
+
+## Built With
+
+- Docusaurus
+- React
 - TypeScript
 - MDX
-
-## 本地开发
-
-安装依赖：
-
-```bash
-npm install
-```
-
-启动开发服务器：
-
-```bash
-npm run start
-```
-
-默认会在本地启动 Docusaurus 开发服务，并支持页面热更新。
-
-## 构建
-
-```bash
-npm run build
-```
-
-构建产物会生成到 `build/` 目录。
-
-## 类型检查
-
-```bash
-npm run typecheck
-```
-
-## 项目结构
-
-```text
-blog/                  博客文章
-docs/                  笔记文档
-src/pages/             首页、关于页等独立页面
-src/css/custom.css     全局样式和主题覆盖
-src/theme/             Docusaurus 主题组件覆盖
-static/                静态资源
-docusaurus.config.ts   Docusaurus 站点配置
-sidebars.ts            文档侧边栏配置
-```
-
-## 当前改造点
-
-- 改造首页为单屏技术博客入口
-- 调整顶部导航和底部栏信息架构
-- 替换默认 Docusaurus 教程内容
-- 新增前端方向博客文章
-- 博客侧边栏支持年份和月份分组
-- 浏览器标签标题固定为 `Kogorou Blog`
-
-## License
-
-This project is built on top of Docusaurus. Site content and customization are maintained for personal use.
