@@ -1,296 +1,151 @@
 .page {
   background:
-    radial-gradient(circle at 80% 10%, rgba(46, 133, 85, 0.18), transparent 24rem),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px),
-    linear-gradient(180deg, #f8fafc 0%, #ffffff 58%, #f4f7f5 100%);
-  background-size: auto, 54px 54px, auto;
-  height: 100%;
-  overflow: hidden;
+    radial-gradient(circle at 78% 14%, rgba(46, 133, 85, 0.22), transparent 24rem),
+    linear-gradient(180deg, #eef6f1 0%, #f8fbf9 54%, #e8f0ea 100%);
+  min-height: 100%;
+  overflow-x: hidden;
 }
 
-.shell {
-  display: grid;
-  height: 100%;
-  min-height: 0;
-  padding: clamp(0.75rem, 2.1vh, 1.5rem) 0;
-}
-
-.shell :global(.container) {
+.hero {
   display: flex;
   flex-direction: column;
-  gap: clamp(0.75rem, 2vh, 1.25rem);
-  height: 100%;
   justify-content: center;
-  min-height: 0;
-}
-
-.dashboard {
-  align-items: stretch;
-  display: grid;
-  gap: clamp(1rem, 2.2vw, 2rem);
-  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.64fr);
-  min-height: 0;
-}
-
-.heroCopy {
-  align-self: center;
-  min-width: 0;
+  min-height: 64vh;
+  padding: clamp(4rem, 12vw, 8rem) 0;
 }
 
 .kicker {
   color: var(--ifm-color-primary);
-  font-size: clamp(0.68rem, 1.3vw, 0.78rem);
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.16em;
-  margin-bottom: clamp(0.45rem, 1.3vh, 0.8rem);
+  margin-bottom: 0.85rem;
 }
 
 .title {
-  font-size: clamp(2.5rem, 7vw, 5.6rem);
-  letter-spacing: -0.075em;
-  line-height: 0.9;
-  margin-bottom: clamp(0.65rem, 1.8vh, 1rem);
+  font-size: clamp(2.6rem, 7vw, 5.4rem);
+  letter-spacing: -0.07em;
+  line-height: 0.95;
+  margin-bottom: 1.1rem;
   max-width: 780px;
 }
 
 .subtitle {
   color: var(--ifm-color-emphasis-700);
-  font-size: clamp(0.95rem, 1.8vw, 1.18rem);
+  font-size: clamp(1rem, 2vw, 1.22rem);
   line-height: 1.75;
-  margin: 0 0 clamp(0.8rem, 2vh, 1.25rem);
-  max-width: 700px;
+  margin: 0 0 1.6rem;
+  max-width: 680px;
 }
 
 .buttons {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
-.statusPanel {
-  align-self: center;
-  background: rgba(15, 23, 42, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 26px;
-  box-shadow: 0 24px 72px rgba(15, 23, 42, 0.22);
-  color: #e2e8f0;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.panelHeader {
+.cta {
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  gap: 0.5rem;
-  padding: clamp(0.65rem, 1.8vh, 0.9rem) 1rem;
-}
-
-.panelHeader span {
-  border-radius: 999px;
-  height: 0.65rem;
-  width: 0.65rem;
-}
-
-.panelHeader span:nth-child(1) {
-  background: #ef4444;
-}
-
-.panelHeader span:nth-child(2) {
-  background: #f59e0b;
-}
-
-.panelHeader span:nth-child(3) {
-  background: #22c55e;
-}
-
-.panelHeader strong {
-  color: #94a3b8;
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.78rem;
-  margin-left: auto;
-}
-
-.panelBody {
-  font-family: var(--ifm-font-family-monospace);
-  font-size: clamp(0.78rem, 1.2vw, 0.88rem);
-  line-height: 1.7;
-  padding: clamp(0.85rem, 2vh, 1.15rem) 1.1rem 0.55rem;
-}
-
-.panelBody p {
-  margin: 0;
-}
-
-.panelBody span {
-  color: #4ade80;
-  margin-right: 0.35rem;
-}
-
-.panelLine {
-  color: #cbd5e1;
-  padding-left: 1rem;
-}
-
-.panelLine::before {
-  color: #64748b;
-  content: '-> ';
-}
-
-.signalGrid {
-  display: grid;
-  gap: 1px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: clamp(0.55rem, 1.6vh, 0.85rem);
-}
-
-.signal {
-  background: rgba(255, 255, 255, 0.06);
-  display: grid;
-  gap: 0.2rem;
-  min-width: 0;
-  padding: clamp(0.65rem, 1.8vh, 0.9rem) 0.8rem;
-}
-
-.signal span {
-  color: #94a3b8;
-  font-size: 0.68rem;
-}
-
-.signal strong {
-  color: #f8fafc;
-  font-size: clamp(0.72rem, 1.2vw, 0.86rem);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cardRail {
-  display: grid;
-  gap: clamp(0.65rem, 1.4vw, 1rem);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-height: 0;
-}
-
-.featureCard {
-  background:
-    linear-gradient(135deg, rgba(46, 133, 85, 0.11), transparent 38%),
-    rgba(255, 255, 255, 0.86);
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 24px;
-  color: inherit;
-  min-height: 0;
-  padding: clamp(0.85rem, 2vh, 1.2rem);
-  position: relative;
+  border-radius: 16px;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 0.65rem;
+  justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 3rem;
+  padding: 0.78rem 1.15rem;
   text-decoration: none;
   transition:
+    background-color 180ms ease,
     border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease,
     transform 180ms ease;
 }
 
-.featureCard::after {
-  background: var(--ifm-color-primary);
-  bottom: 0.9rem;
-  content: '';
-  height: 2px;
-  left: 1rem;
-  position: absolute;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 180ms ease;
-  width: calc(100% - 2rem);
-}
-
-.featureCard:hover {
-  border-color: var(--ifm-color-primary);
-  color: inherit;
+.cta:hover {
   text-decoration: none;
-  transform: translateY(-3px);
+  transform: translateY(-2px);
 }
 
-.featureCard:hover::after {
-  transform: scaleX(1);
+.ctaIcon {
+  display: inline-flex;
+  transition: transform 180ms ease;
 }
 
-.cardMeta {
-  color: var(--ifm-color-primary);
-  display: block;
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.72rem;
-  font-weight: 800;
-  margin-bottom: 0.45rem;
+.ctaIcon svg {
+  fill: none;
+  height: 1.05rem;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 1.05rem;
 }
 
-.featureCard h2 {
-  font-size: clamp(1.1rem, 2vw, 1.45rem);
-  letter-spacing: -0.04em;
-  margin-bottom: 0.4rem;
+.cta:hover .ctaIcon {
+  transform: translateX(3px);
 }
 
-.featureCard p {
-  color: var(--ifm-color-emphasis-700);
-  font-size: clamp(0.78rem, 1.25vw, 0.92rem);
-  line-height: 1.62;
-  margin-bottom: 0.6rem;
+.ctaPrimary {
+  background: #1f5f3d;
+  border: 1px solid #1f5f3d;
+  box-shadow: 0 14px 34px rgba(31, 95, 61, 0.22);
+  color: #ffffff;
+}
+
+.ctaPrimary:hover {
+  background: #174d31;
+  border-color: #174d31;
+  color: #ffffff;
+}
+
+.ctaSecondary {
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(46, 133, 85, 0.28);
+  color: #1f5137;
+}
+
+.ctaSecondary:hover {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(46, 133, 85, 0.58);
+  color: #174d31;
 }
 
 [data-theme='dark'] .page {
   background:
-    radial-gradient(circle at 80% 10%, rgba(37, 194, 160, 0.13), transparent 24rem),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, #111827 0%, #1b1b1d 60%, #10131c 100%);
-  background-size: auto, 54px 54px, auto;
+    radial-gradient(circle at 78% 14%, rgba(37, 194, 160, 0.16), transparent 24rem),
+    linear-gradient(180deg, #0f172a 0%, #171f1d 58%, #0d1412 100%);
 }
 
-[data-theme='dark'] .featureCard {
-  background:
-    linear-gradient(135deg, rgba(37, 194, 160, 0.1), transparent 40%),
-    rgba(28, 30, 33, 0.9);
+[data-theme='dark'] .ctaPrimary {
+  background: #25c2a0;
+  border-color: #25c2a0;
+  box-shadow: 0 14px 34px rgba(37, 194, 160, 0.2);
+  color: #071f19;
 }
 
-[data-theme='dark'] .statusPanel {
-  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.32);
+[data-theme='dark'] .ctaPrimary:hover {
+  background: #4fddbf;
+  border-color: #4fddbf;
+  color: #071f19;
 }
 
-@media screen and (max-width: 996px) {
-  .dashboard {
-    grid-template-columns: 1fr;
-  }
-
-  .statusPanel {
-    display: none;
-  }
-
-  .cardRail {
-    grid-template-columns: 1fr;
-  }
-
-  .featureCard {
-    padding-right: 1.5rem;
-  }
+[data-theme='dark'] .ctaSecondary {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(79, 221, 191, 0.32);
+  color: #d4fff3;
 }
 
-@media screen and (max-height: 760px) {
-  .subtitle {
-    line-height: 1.55;
-  }
-
-  .featureCard p {
-    display: none;
-  }
+[data-theme='dark'] .ctaSecondary:hover {
+  background: rgba(79, 221, 191, 0.1);
+  border-color: rgba(79, 221, 191, 0.58);
+  color: #ffffff;
 }
 
 @media screen and (max-width: 480px) {
-  .buttons :global(.button) {
+  .cta {
     width: 100%;
-  }
-
-  .shell :global(.container) {
-    justify-content: start;
-  }
-
-  .featureCard {
-    border-radius: 18px;
   }
 }

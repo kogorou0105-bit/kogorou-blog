@@ -17,35 +17,6 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
-html:has(.home-main-wrapper),
-body:has(.home-main-wrapper) {
-  height: 100%;
-  overflow: hidden;
-}
-
-#__docusaurus:has(.home-main-wrapper) {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-}
-
-#__docusaurus:has(.home-main-wrapper) .navbar,
-#__docusaurus:has(.home-main-wrapper) .footer {
-  flex: 0 0 auto;
-}
-
-.home-main-wrapper {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-}
-
-#__docusaurus:has(.home-main-wrapper) .footer {
-  max-height: 30vh;
-  overflow-y: auto;
-}
-
 .navbar__link {
   position: relative;
   transition:
