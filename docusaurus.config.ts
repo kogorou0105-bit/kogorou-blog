@@ -134,16 +134,16 @@ const config: Config = {
           title: '分类',
           items: [
             {
-              label: 'React',
-              to: '/blog/tags/react',
+              label: 'Workflow',
+              to: '/blog/tags/workflow',
             },
             {
-              label: 'CSS',
-              to: '/blog/tags/css',
+              label: 'AI Engineering',
+              to: '/blog/tags/ai-engineering',
             },
             {
-              label: 'TypeScript',
-              to: '/blog/tags/type-script',
+              label: 'Personal',
+              to: '/blog/tags/personal',
             },
           ],
         },
