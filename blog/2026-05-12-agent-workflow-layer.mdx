@@ -1,0 +1,362 @@
+---
+slug: agent-workflow-layer
+title: 我在等 Agent 的 Workflow 层
+description: 当 agent 生态有了 skills、subagents、hooks 和 plugins 以后，workflow 应该成为更明确的组织、启动和产物边界。
+tags: [Agent, Workflow, AI Engineering]
+---
+
+最近我同时接触了几套 agent workflow。
+
+一套是我自己在做的 Zenith 组件迁移 workflow。这个 workflow 里面有很多 subagent，每个 agent 通常会调用一两个 skill 去完成自己的局部工作。另一套是比较出名的 Trellis。它的 coding workflow 明显更完整，除了 agent 和 skill，还有很多专业的脚本、插件、hooks、任务状态、上下文注入、检查和沉淀机制。
+
+Trellis 很有启发，但我不敢直接把它那套 workflow 放进当前做 Zenith 组件迁移的项目里。不是因为它不好，而是因为它太完整了。一旦放进去，两套 workflow 的 agents、skills、hooks、commands、plugins 和运行产物很容易挤在一起，项目会变得非常乱。
+
+{/* truncate */}
+
+这让我开始意识到一个问题：现在很多 agent 生态已经有了 skills、agents、commands、hooks、plugins、knowledge，但这些仍然更像一堆能力零件。真正复杂的工作不是调用某个 skill，而是执行一条 workflow。
+
+所以我现在更倾向于一个判断：**agent 平台不应该只提供 skills，也应该把 workflow 作为一等抽象。**
+
+---
+
+## 两套 workflow 都有价值，但直接混放会乱
+
+Zenith 组件迁移 workflow 和 Trellis coding workflow 解决的是不同问题。
+
+组件迁移更关心：
+
+- 旧组件能力怎么识别；
+- 新组件能力怎么对齐；
+- 参数和事件怎么映射；
+- 样式、交互、业务语义怎么校验；
+- 迁移过程中的截图、对比、失败原因怎么留证据。
+
+Trellis coding workflow 更关心：
+
+- 需求怎么写成 PRD；
+- 任务状态怎么从 planning 进入 in progress；
+- implement / check / update spec 怎么形成闭环；
+- 上下文怎么注入给 agent；
+- 代码修改后如何验证、提交和归档。
+
+它们都很有价值，但它们不应该被简单倒进同一个 `.opencode/agents`、`.opencode/skills`、`.opencode/hooks` 或 `.opencode/commands` 里。
+
+因为当一个 workflow 同时包含 agents、skills、hooks、commands、plugins、knowledge 和运行产物时，它就不再是几个配置文件，而是一套工作系统。如果不同工作系统的零件都散放在同一个目录层级里，用户很快就会失去边界感：这个 agent 属于哪个 workflow？这个 skill 是通用的，还是只服务某个迁移流程？这个 hook 会不会影响别的任务？这个运行产物能不能删？
+
+这不是洁癖问题，而是可维护性问题。
+
+---
+
+## skills 解决不了 workflow 的组织问题
+
+现在很多 agent 平台已经支持 skills。skill 很适合表达“某个能力怎么做”，比如读文档、查表格、处理 Figma、发消息、搜索代码、生成图片。
+
+但 workflow 不是 skill 的集合那么简单。
+
+一个组件迁移 workflow 不是“调用组件迁移 skill”就结束了。它至少需要经历这样的过程：
+
+```text
+识别迁移对象
+  -> 调研旧组件
+  -> 调研新组件
+  -> 建立参数映射
+  -> 拆分实现任务
+  -> 调用不同 subagent
+  -> 记录中间结论
+  -> 做结构、行为、视觉、语义校验
+  -> 保存证据
+  -> 把失败经验沉淀回流程
+```
+
+这条链路里确实会用到 skills，但 skill 只是能力单元。真正需要被表达的是：这些能力应该按什么顺序使用、每一步需要什么输入、产出放在哪里、失败时怎么处理、最后如何检查和沉淀。
+
+也就是说，skill 解决的是“我会什么”，workflow 解决的是“我如何稳定完成一类任务”。
+
+如果只有 skills，没有 workflow，系统会越来越像一个能力抽屉：里面东西很多，但用户每次都要重新组织一次流程。
+
+---
+
+## workflow 应该是聚合层，而不是能力层
+
+我现在更倾向于把这些概念拆开看：
+
+- **skill**：一个可复用能力，例如查资料、读设计稿、发消息、跑检查。
+- **agent**：一个执行角色，例如迁移分析 agent、实现 agent、review agent。
+- **command**：一个明确入口，例如启动迁移、启动检查、生成报告。
+- **hook**：生命周期中的自动动作，例如会话开始时注入上下文，任务结束时归档产物。
+- **plugin**：平台扩展机制，例如接入浏览器、文件系统、远端服务。
+- **knowledge**：背景知识、项目规范、组件约定、历史经验。
+- **workflow**：把上面这些组织起来的一条可执行流程。
+- **run / state**：一次执行过程中产生的中间产物和运行状态。
+
+这样看，workflow 的职责不是替代 skill，而是编排 skill。它应该描述一类任务的完整工作方式，而不是某个局部能力的调用说明。
+
+一个比较理想的 workflow package 里，至少应该能回答这些问题：
+
+- 这个 workflow 解决什么问题；
+- 它有哪些阶段；
+- 每个阶段需要什么输入；
+- 每个阶段会产生什么输出；
+- 哪些 agents 会参与；
+- 依赖哪些 shared skills；
+- 有哪些 workflow-local skills；
+- 哪些 plugins / hooks / commands 可用；
+- 需要读取哪些 knowledge；
+- 中间产物放在哪里；
+- 如何判断这次运行完成；
+- 如何把经验沉淀回可复用知识。
+
+这才是 workflow 作为一等抽象的意义。
+
+---
+
+## 公共 skill 应该被引用，而不是复制
+
+这里还有一个容易混淆的点：如果 workflow 有自己的边界，那公共 skill 怎么办？
+
+我不觉得每个 workflow 都应该复制一份 skill。像读文档、查代码、处理 Figma、生成截图、发消息这类能力，本来就应该是公共的。如果每个 workflow 都内置一份，很快会变成重复维护，也会让 skill 的版本和行为变得不可控。
+
+更合理的方式是：workflow 拥有自己的边界，但公共 skill 通过依赖声明被引用进来。
+
+也就是说，一个 workflow package 里可以有自己的 local skills，用来表达这个流程特有的能力；同时它也可以声明自己依赖哪些 shared skills：
+
+```yaml
+name: zenith-component-migration
+
+skills:
+  shared:
+    - code-search
+    - figma-reader
+    - screenshot-compare
+
+  local:
+    - component-prop-mapper
+    - migration-report-writer
+```
+
+这样 workflow 不需要复制公共能力，但也不会默认看到所有能力。它能用什么，应该是显式声明出来的。
+
+这点很重要。因为如果所有 workflow 都能隐式访问所有 skills，系统还是会退回到“能力抽屉”的状态：东西很多，但边界不清楚。用户不知道某个 skill 是这个 workflow 真正需要的，还是刚好在全局目录里被匹配到了。
+
+所以我更倾向于让 workflow 像 package 一样声明依赖。公共 skill 可以放在项目级、用户级，甚至远端 registry 里；workflow 启动时只解析自己声明过的那一组能力。
+
+一个比较清楚的解析顺序可能是：
+
+```text
+workflow local skill
+  -> project shared skill
+  -> user/global shared skill
+  -> remote registry skill
+```
+
+这样既能共享，也能隔离。workflow-local skill 可以覆盖公共 skill，但这个覆盖只影响当前 workflow，不会污染其他流程。
+
+这也说明 workflow 自己同样需要配置。
+
+skill 的配置回答的是：这个能力怎么调用、需要什么输入、有什么权限、产物放在哪里。workflow 的配置回答的是：这条流程怎么启动、能用哪些能力、分几个阶段、运行产物放在哪里、失败后怎么恢复。
+
+换句话说：
+
+```text
+skill config = 能力配置
+workflow config = 流程配置
+```
+
+如果 workflow 没有 manifest，它就很容易退化成一段 prompt 或一组松散目录。只有当 workflow 能明确声明自己的入口、依赖、阶段、产物和权限时，它才真的像一个可以复用、可以 review、可以迁移的 package。
+
+---
+
+## 目录不应该只是统一，而应该分层
+
+一开始我会很自然地想：既然 OpenCode 负责 agent，那是不是所有东西都应该塞进 `.opencode`？
+
+但后来我觉得这个目标应该稍微改一下。
+
+更合理的目标不是“全部塞进一个目录”，而是：**一个入口目录，配置与产物分层。**
+
+比如可以想象成这样：
+
+```text
+.opencode/
+  skills/
+    code-search/
+    figma-reader/
+    screenshot-compare/
+
+  workflows/
+    zenith-component-migration/
+      manifest.yaml
+      agents/
+      skills/
+        component-prop-mapper/
+        migration-report-writer/
+      commands/
+      hooks/
+      plugins/
+      knowledge/
+      lib/
+
+    trellis-coding/
+      manifest.yaml
+      agents/
+      skills/
+        spec-writer/
+        task-state-updater/
+      commands/
+      hooks/
+      plugins/
+      knowledge/
+      lib/
+
+  state/
+    <run_id>/
+      logs/
+      artifacts/
+      evidence/
+      cache/
+      results/
+```
+
+这里的关键不是一定要叫 `.opencode/workflows` 或 `.opencode/state`，而是要区分两类东西。
+
+`.opencode/skills` 可以放项目级共享能力，`workflows/<name>/skills` 则放当前 workflow 的私有能力。前者可以被多个 workflow 显式引用，后者只服务当前 workflow。
+
+第一类是可复用的工作包，也就是 workflow package。它应该适合版本化，适合 review，适合被复制到另一个项目里。agents、skills、commands、hooks、plugins、knowledge、manifest、lib 都属于这一类。
+
+第二类是一次执行产生的运行产物，也就是 workflow run。它可能很大，会频繁变化，还可能包含敏感内容。日志、缓存、下载的依赖、截图、评测结果、临时文件、失败记录都属于这一类。
+
+这也是为什么 `.trellis` 这类并列产物目录会存在。它不是没有道理。运行产物如果和配置混在一起，git 状态会很吵，清理也麻烦，多人协作时更容易误提交。
+
+所以问题不是“为什么有 `.trellis`”，而是用户需要一个更清晰的心智模型：哪些是可复用 workflow package，哪些是一次性 workflow run。
+
+配置应该可版本化，产物应该可清理。这两个边界如果不清楚，workflow 越强，项目越乱。
+
+---
+
+## workflow 不应该靠模糊匹配启动
+
+还有一个问题是启动方式。
+
+skill 可以靠模糊匹配触发。用户说“帮我查一下会议纪要”，系统判断需要调用某个 skill，这可以接受。因为 skill 是局部能力，即使匹配错了，影响范围通常也比较小。
+
+但 workflow 不一样。
+
+workflow 一旦启动，意味着 agent 要进入一套比较长的状态机：创建任务、读取规范、调用 subagent、生成中间产物、执行检查、更新沉淀。如果它像 skill 一样靠模糊匹配启动，用户很难知道自己到底进入了哪条流程，也很难判断什么时候应该退出、暂停、恢复或清理。
+
+所以 workflow 更适合用硬命令启动，例如：
+
+```text
+/workflow zenith-component-migration
+/workflow trellis-coding
+/workflow blog-writing
+```
+
+或者更短一些：
+
+```text
++run zenith-component-migration
++run trellis-coding
++run blog-writing
+```
+
+命令形式不重要，重要的是 workflow 应该有明确入口。用户真正需要记住的，不应该是哪些 agent、skill、hook 分别放在哪里，而是：我要运行哪个 workflow。
+
+一旦 workflow 被显式启动，系统就可以明确告诉用户：
+
+- 当前使用的是哪个 workflow；
+- 当前处在哪个 phase；
+- 本次 run 的产物目录在哪里；
+- 哪些 agents / skills / hooks / plugins 会参与；
+- 当前缺哪些输入；
+- 下一步会做什么；
+- 如何暂停、恢复或结束。
+
+这比“AI 猜测用户想调用哪个 skill”稳定得多。
+
+---
+
+## 中间产物也需要自己的位置
+
+很多 agent 系统最大的问题是：过程发生在聊天里，结果也留在聊天里。
+
+这对简单问题没关系，但对 workflow 来说很危险。
+
+一次组件迁移过程中会产生很多东西：
+
+- 迁移对象列表；
+- 旧组件能力分析；
+- 新组件能力分析；
+- 参数映射表；
+- 不兼容点；
+- 截图证据；
+- 校验结果；
+- 失败原因；
+- 后续修正建议。
+
+一次 coding workflow 也会产生很多东西：
+
+- PRD；
+- 技术设计；
+- research；
+- 任务状态；
+- check result；
+- spec 更新建议；
+- commit 前验证记录。
+
+就连写博客这种看起来很轻的任务，也会产生内容类型、来源模式、写作风格、追问答案、文章骨架、草稿、构建结果。
+
+这些内容不能只散在聊天记录里。它们应该有明确的 artifact location。
+
+否则下一次继续任务时，agent 只能重新从聊天历史里猜；换一个 agent 时，上下文更容易丢；多人协作时，别人也不知道哪些结论是过程产物，哪些结论已经沉淀成规范。
+
+workflow 如果要可靠，就必须认真对待中间产物。它们不是噪音，而是流程能被恢复、检查、复盘和改进的证据。
+
+---
+
+## 几个 workflow 的共同结构
+
+Zenith 组件迁移、Trellis coding workflow、博客写作 workflow 看起来是完全不同的事情，但它们有很相似的结构。
+
+Zenith 组件迁移需要多个 subagent 协作。有人负责读旧组件，有人负责找新组件能力，有人负责参数映射，有人负责视觉和行为校验。这里的重点不是某一个 skill，而是迁移流程本身。
+
+Trellis coding workflow 更接近一个成熟 harness。它有任务状态，有脚本，有 hooks，有上下文注入，有检查和沉淀。它证明了 workflow 可以比简单 agent prompt 更稳定。
+
+博客写作 workflow 看起来轻量，但也有流程：确认内容类型、确认来源模式、确认风格、追问关键问题、生成结构、写正文、构建验证。它说明 workflow 不只属于 coding，也适合知识工作。
+
+这些例子共同说明一件事：复杂任务需要的不是更多零散能力，而是一套能组织能力、状态和产物的 workflow 层。
+
+---
+
+## 如果推动到上游，应该最小化迁移
+
+如果要把这个想法推动到 OpenCode 或 Trellis 上游，我不觉得应该一上来就要求重构所有目录。
+
+更现实的路径可能是三步。
+
+第一步，只做路径解析和兼容。
+
+支持从 `.opencode/workflows/<name>/` 读取一个 workflow package，但保留现有目录结构。旧的 `.trellis` 仍然能用，已有项目不需要迁移，也不会被破坏。
+
+第二步，提供可配置的产物根目录。
+
+默认仍然可以使用 `.trellis` 或原来的目录，但允许用户切换到 `.opencode/state/`。这样不会破坏已有用户的清理脚本、ignore 规则和协作习惯。
+
+第三步，补一个最小示例 workflow 和文档。
+
+让用户能看到：只要一个目录名或一个 command，就能启动完整 workflow。维护者也更容易理解这个抽象的价值，因为它不再只是目录规范，而是一个可运行的用户体验。
+
+这个迁移路径的重点是“最小可合并”。先让 workflow package 这个概念出现，再逐步让配置、产物、命令入口和文档形成闭环。
+
+---
+
+## Agent 需要 workflow 层
+
+我现在越来越觉得，agent 平台下一步要补的不是更多零散 skills，而是 workflow 这一层。
+
+skills 解决的是“我会什么”。workflow 解决的是“我如何稳定完成一类任务”。
+
+如果 workflow 没有自己的命名空间、启动入口和产物边界，那么能力越多，项目越乱。反过来，如果 workflow 可以被打包、显式启动、隔离运行、沉淀产物，那么 agent 才真正从“能调用工具”走向“能执行流程”。
+
+这也是我为什么不敢直接把 Trellis workflow 放进 Zenith 项目的原因。
+
+我不是不想复用它，而是希望复用的是一个清晰的 workflow package，而不是把另一套工作流的 agents、skills、hooks、commands 和运行产物一起倒进当前项目。
