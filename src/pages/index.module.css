@@ -2,12 +2,22 @@
   background:
     radial-gradient(circle at 78% 14%, rgba(46, 133, 85, 0.22), transparent 24rem),
     linear-gradient(180deg, #eef6f1 0%, #f8fbf9 54%, #e8f0ea 100%);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-height: 100%;
   overflow-x: hidden;
 }
 
+.page > :global(.container) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
 .hero {
   display: flex;
+  flex: 1;
   flex-direction: column;
   justify-content: center;
   min-height: 64vh;
